@@ -1,40 +1,24 @@
-    Set-Location D:\repository\SFTP 
-    $conf = Import-PowerShellDataFile .\conf.psd1
+$conf = Import-PowerShellDataFile .\conf.psd1
+Add-Type -Path .\lib\WinSCP-5.21.5-Automation\WinSCPnet.dll
 
-    # Load WinSCP .NET assembly
-    Add-Type -Path .\lib\WinSCP-5.21.5-Automation\WinSCPnet.dll
- 
-    # Setup session options
-    $sessionOptions = New-Object WinSCP.SessionOptions -Property @{
-        Protocol = [WinSCP.Protocol]::Sftp
-        HostName = $conf.Address
-        UserName = $conf.Username
-        Password = $conf.Password
-        SshHostKeyFingerprint = "ssh-ed25519 255 d7Te2DHmvBNSWJNBWik2KbDTjmWtYHe2bvXTMM9lVg4"
-    }
- 
-    $session = New-Object WinSCP.Session
- 
+$sessionOptions = New-Object WinSCP.SessionOptions -Property @{
+    Protocol              = [WinSCP.Protocol]::Sftp
+    HostName              = $conf.Address
+    UserName              = $conf.Username
+    Password              = $conf.Password
+    SshHostKeyFingerprint = "ssh-ed25519 255 d7Te2DHmvBNSWJNBWik2KbDTjmWtYHe2bvXTMM9lVg4"
+}
 
-    foreach($dir in $conf.DirectoryList){
+$session = New-Object WinSCP.Session
 
-            # Connect
-            $session.Open($sessionOptions)
- 
-            # Download files
-            $transferOptions = New-Object WinSCP.TransferOptions
-            $transferOptions.TransferMode = [WinSCP.TransferMode]::Binary
- 
-            $transferResult =
-            $session.GetFiles(
-                (Join-Path $dir "*"), $conf.LocalDirecory, $False, $transferOptions
-            )
- 
-            # Throw on any error
-            $transferResult.Check()
- 
-    }
-   
-    $session.Dispose()
- 
-    
+foreach ($dir in $conf.DirectoryList) {
+    $session.Open($sessionOptions)
+    $transferOptions = New-Object WinSCP.TransferOptions
+    $transferOptions.TransferMode = [WinSCP.TransferMode]::Binary
+    $transferResult =
+    $session.GetFiles((Join-Path $dir "*"), $conf.LocalDirecory, $False, $transferOptions)
+    $transferResult.Check()
+}
+
+$session.Dispose()
+
