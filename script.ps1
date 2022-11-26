@@ -8,7 +8,6 @@ $conf = @{
         "d:\sftp\uploads_2",
         "d:\sftp\uploads_3"
     )
-    RemotePath = "/root"
     throttlelimit = 9
 }
 
