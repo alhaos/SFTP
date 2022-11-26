@@ -8,11 +8,30 @@ $conf = @{
         "d:\sftp\uploads_2",
         "d:\sftp\uploads_3"
     )
-    RemotePath = "/"
+    RemotePath = "/root"
+    throttlelimit = 9
 }
 
+function Get-Files {
+    param(
+        $Dirs
+    )
+
+    $files = @{}
+
+    foreach ($dir in $Dirs){
+        foreach ($file in Get-ChildItem $dir -Recurse -file){
+            $files.Add($file.Fullname, [System.IO.Path]::GetDirectoryName($file.Fullname).Substring(([System.IO.DirectoryInfo]$dir).Parent.FullName.Length + 1).Replace("\", "/"))
+        }
+    }
+    return $files
+}
+
+
 Add-Type -Path .\lib\WinSCP-5.21.5-Automation\WinSCPnet.dll
+
 $ErrorActionPreference = 'stop'
+$DebugPreference = 'continue'
 
 $PSNativeCommandUseErrorActionPreference
 
@@ -30,9 +49,27 @@ $transferOptions = New-Object WinSCP.TransferOptions
 $transferOptions.TransferMode = [WinSCP.TransferMode]::Binary
 
 workflow wf {
-    foreach -parallel ($dir in $conf.DirectoryList) {
-        $transferResult = $session.PutFiles($dir, "/", $false, $transferOptions)
+
+    param(
+        $Files,
+        $Session
+    )
+
+    foreach -parallel -throttlelimit $conf.throttlelimit ($key in $Files.Keys) {
+        $subdirs = ($Files.$key).Split('/')
+        for ($i = 0; $i -lt $subdirs.Count; $i++){
+            $d = '{0}' -f ($subdirs[0..$i] -join '/')
+            $exist = $session.FileExists($d)
+            if (!$exist){
+                $null = $Session.CreateDirectory($d)
+            }
+        }
+        $transferResult = $Session.PutFileToDirectory($key, $Files.$key, $false, $transferOptions)
     }
 }
+
+$files = Get-Files -Dirs $conf.DirectoryList
+
+wf $files $session
 
 $session.Dispose()
