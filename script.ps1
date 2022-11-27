@@ -19,7 +19,7 @@ function Get-Files {
     $files = @{}
 
     foreach ($dir in $Dirs){
-        foreach ($file in Get-ChildItem $dir -Recurse -file){
+        foreach ($file in Get-ChildItem $dir -Recurse -File){
             $files.Add($file.Fullname, [System.IO.Path]::GetDirectoryName($file.Fullname).Substring(([System.IO.DirectoryInfo]$dir).Parent.FullName.Length + 1).Replace("\", "/"))
         }
     }
