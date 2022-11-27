@@ -9,6 +9,7 @@ $conf = @{
         "d:\sftp\uploads_3"
     )
     throttlelimit = 9
+    RemoteDirectory = "/root/tmp/"
 }
 
 function Get-Files {
@@ -51,24 +52,27 @@ workflow wf {
 
     param(
         $Files,
-        $Session
+        $Session,
+        $RemoteDirectory
     )
 
     foreach -parallel -throttlelimit $conf.throttlelimit ($key in $Files.Keys) {
         $subdirs = ($Files.$key).Split('/')
         for ($i = 0; $i -lt $subdirs.Count; $i++){
-            $d = '{0}' -f ($subdirs[0..$i] -join '/')
+            $d = "{0}{1}" -f $RemoteDirectory, ($subdirs[0..$i] -join '/')
             $exist = $session.FileExists($d)
             if (!$exist){
                 $null = $Session.CreateDirectory($d)
             }
         }
-        $transferResult = $Session.PutFileToDirectory($key, $Files.$key, $false, $transferOptions)
+        $d = "{0}{1}" -f $RemoteDirectory, $Files.$key
+        Write-Debug ("file {0} copied to {1}" -f $key, $d)
+        $transferResult = $Session.PutFileToDirectory($key, $d, $false, $transferOptions)
     }
 }
 
-$files = Get-Files -Dirs $conf.DirectoryList
+$files = Get-Files -Dirs $conf.DirectoryList 
 
-wf $files $session
+wf $files $session $conf.RemoteDirectory
 
 $session.Dispose()
